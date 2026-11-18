@@ -1,0 +1,35 @@
+# Coastal Time Trial —— systemd 服务
+#
+# 安装：
+#   sudo cp deploy/coastal.service /etc/systemd/system/coastal-race.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now coastal
+#   systemctl status coastal
+#   journalctl -u coastal -f
+#
+# 前置：项目放在 /opt/coastal-race，且已在该目录的 server/ 下执行过 npm install --omit=dev。
+
+[Unit]
+Description=Coastal Time Trial (multiplayer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# 建议用非 root 账号：useradd -r -s /sbin/nologin -d /opt/coastal-race coastal
+User=coastal
+Group=coastal
+WorkingDirectory=/opt/coastal-race/server
+Environment=HOST=127.0.0.1
+Environment=PORT=8787
+Environment=NODE_ENV=production
+ExecStart=/usr/local/bin/node server.js
+Restart=always
+RestartSec=2
+# 每个连接一个 socket + 文件句柄，房间多时别被默认 1024 卡住
+LimitNOFILE=65535
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

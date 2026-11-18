@@ -1,0 +1,17 @@
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# 依赖
+node_modules/
+server/node_modules/
+
+# 日志与本地环境
+*.log
+.env
+.env.*
+
+# 编辑器
+.vscode/
+.idea/

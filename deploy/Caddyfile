@@ -1,0 +1,18 @@
+# Coastal Time Trial —— Caddy 反代（自动 HTTPS，推荐）
+#
+# 1) 把 race.example.com 换成你自己的域名，DNS A 记录指向服务器公网 IP
+# 2) 安装 Caddy 后：sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy
+# 3) 游戏进程只需监听 127.0.0.1:8787：
+#      cd /opt/coastal-time-trial/server && HOST=127.0.0.1 PORT=8787 node server.js
+#
+# Caddy 会自动申请 / 续期 Let's Encrypt 证书，也会自动处理 WebSocket 的 Upgrade。
+
+race.example.com {
+	encode zstd gzip
+
+	# 所有请求（静态页面 + /ws）都转给同一个 Node 进程
+	reverse_proxy 127.0.0.1:8787 {
+		# 让服务端拿到真实 IP（限流用；不要暴露在公网直连时使用）
+		header_up X-Forwarded-For {remote_host}
+	}
+}

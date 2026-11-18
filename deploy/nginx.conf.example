@@ -1,0 +1,45 @@
+# Coastal Time Trial —— Nginx 反代示例
+#
+# 1) 把 race.example.com 换成你的域名
+# 2) 证书：sudo certbot --nginx -d race.example.com（或手动填下面两行路径）
+# 3) cp deploy/nginx.conf.example /etc/nginx/sites-available/coastal
+#    ln -s /etc/nginx/sites-available/coastal /etc/nginx/sites-enabled/coastal
+#    sudo nginx -t && sudo systemctl reload nginx
+# 4) 游戏进程只监听本机：HOST=127.0.0.1 PORT=8787 node server.js
+
+server {
+    listen 80;
+    server_name race.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name race.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/race.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/race.example.com/privkey.pem;
+    ssl_protocols       TLSv1.2 TLSv1.3;
+
+    # 联机走这条：WebSocket 必须带 Upgrade / Connection
+    location /ws {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # 服务端有 25s 心跳；这里放宽到 1h，避免大厅挂机被掐
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # 页面与静态资源（也可改成 root /var/www/coastal; 由 Nginx 直接发）
+    location / {
+        proxy_pass http://127.0.0.1:8787;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
